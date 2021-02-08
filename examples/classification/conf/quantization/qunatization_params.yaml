@@ -1,0 +1,4 @@
+quantization:
+  n_embed: 64
+  part_idx: 1
+  commitment_w: 0.1
