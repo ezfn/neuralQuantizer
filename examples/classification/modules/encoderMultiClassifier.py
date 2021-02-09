@@ -31,28 +31,49 @@ class EncoderMultiClassifier(EncoderMultiDecoder.EncoderMultiDecoder):
     def training_step(self, batch, batch_idx):
         result_dict = super().training_step(batch, batch_idx)
         accs = self.calculate_acc(result_dict['preds'], result_dict['gts'], self.train_acc_handlers)
-        for idx in range(len(self.decoder)):
-            self.log( f'train_acc_{idx}', accs[idx] )
-        self.log( f'train_acc_ensemble', accs[-1] )
+        acc_dict = {}
+        for idx in range( len( self.decoder ) ):
+            acc_dict[f'model_{idx}_train'] = accs[idx]
+        acc_dict["ensemble_train"] = accs[-1]
+        self.logger.experiment.add_scalars('acc_step', acc_dict,
+                                            global_step=self.global_step )
+
+        # for idx in range(len(self.decoder)):
+        #     self.log( f'train_acc_{idx}', accs[idx] )
+        # self.log( f'train_acc_ensemble', accs[-1] )
         return result_dict
 
     def training_epoch_end(self, outputs_dicts) -> None:
         super().training_epoch_end(outputs_dicts)
-        for idx in range( len( self.decoder)):
-            self.log( f'train_acc_{idx}_epoch', self.train_acc_handlers[idx].compute())
-        self.log( f'train_acc_ensemble_epoch', self.train_acc_handlers[-1].compute())
+        acc_dict = {}
+        for idx in range( len( self.decoder ) ):
+            acc_dict[f'model_{idx}_train'] = self.train_acc_handlers[idx].compute()
+        acc_dict["ensemble_train"] = self.train_acc_handlers[-1].compute()
+        self.logger.experiment.add_scalars( 'acc_epoch', acc_dict,
+                                            global_step=self.global_step )
+        # for idx in range( len( self.decoder)):
+        #     self.log( f'train_acc_{idx}_epoch', self.train_acc_handlers[idx].compute())
+        # self.log( f'train_acc_ensemble_epoch', self.train_acc_handlers[-1].compute())
 
 
     def validation_step(self, batch, batch_idx):
         result_dict = super().validation_step( batch, batch_idx )
         accs = self.calculate_acc( result_dict['preds'], result_dict['gts'], self.val_acc_handlers)
-        for idx in range( len( self.decoder ) ):
-            self.log( f'val_acc_{idx}', accs[idx] )
-        self.log( f'val_acc_ensemble', accs[-1] )
+        # acc_dict = {}
+        # for idx in range( len( self.decoder ) ):
+        #     acc_dict[f'model_{idx}_val'] = accs[idx]
+        # acc_dict["ensemble_val"] = accs[-1]
+        # self.logger.experiment.add_scalars('acc_step', acc_dict,
+        #                                     global_step=self.global_step )
         return result_dict
+
+
 
     def validation_epoch_end(self, outputs_dicts) -> None:
         super().validation_epoch_end( outputs_dicts )
+        acc_dict = {}
         for idx in range( len( self.decoder ) ):
-            self.log( f'val_acc_{idx}_epoch', self.val_acc_handlers[idx].compute() )
-        self.log( f'val_acc_ensemble_epoch', self.val_acc_handlers[-1].compute() )
+            acc_dict[f'model_{idx}_val'] = self.val_acc_handlers[idx].compute()
+        acc_dict["ensemble_val"] = self.val_acc_handlers[-1].compute()
+        self.logger.experiment.add_scalars('acc_epoch', acc_dict,
+                                           global_step=self.global_step)

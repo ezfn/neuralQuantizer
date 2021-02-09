@@ -1,5 +1,5 @@
 defaults:
-  - dataset: cifar10
+  - dataset: cifar100
   - arch: mobilenet_cifar10_std
   - ensemble: ensemble_params
   - quantization: qunatization_params

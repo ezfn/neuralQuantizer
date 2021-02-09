@@ -27,12 +27,23 @@ def train(cfg: DictConfig) -> None:
         training_params = cfg.training
 
     loss = torch.nn.CrossEntropyLoss()
-    train_transform = get_cifar_train_transforms()
     test_transform = get_test_transform()
-    trainset = torchvision.datasets.CIFAR10( root=cfg.params.data_path, train=True,
-                                             download=True, transform=train_transform)
-    testset = torchvision.datasets.CIFAR10( root=cfg.params.data_path, train=False,
-                                                        download=True, transform=test_transform)
+    if 'cifar' in cfg.dataset['name']:
+        train_transform = get_cifar_train_transforms()
+    else:
+        train_transform = test_transform
+
+    if cfg.dataset['name'] == 'cifar10':
+        trainset = torchvision.datasets.CIFAR10( root=cfg.params.data_path, train=True,
+                                                 download=True, transform=train_transform)
+        testset = torchvision.datasets.CIFAR10( root=cfg.params.data_path, train=False,
+                                                            download=True, transform=test_transform)
+    elif cfg.dataset['name'] == 'cifar100':
+        trainset = torchvision.datasets.CIFAR100( root=cfg.params.data_path, train=True,
+                                                 download=True, transform=train_transform)
+        testset = torchvision.datasets.CIFAR100( root=cfg.params.data_path, train=False,
+                                                            download=True, transform=test_transform)
+
     trainloader = torch.utils.data.DataLoader( trainset, batch_size=training_params.batch_size,
                                                shuffle=True, num_workers=training_params.num_workers)
     testloader = torch.utils.data.DataLoader( testset, batch_size=training_params.batch_size,
