@@ -1,5 +1,8 @@
 import torchvision.transforms as transforms
 from torch.utils.data import TensorDataset
+import kornia
+import PIL
+import torch
 
 def im_to_float(im):
     return im.float().div( 255 )
@@ -31,3 +34,14 @@ def get_test_torch_transform():
         [im_to_float,
          transforms.Normalize( (0.5, 0.5, 0.5), (0.5, 0.5, 0.5) )] )
     return test_torch_transform
+
+def get_img_and_mask_transforms(desired_size):
+    img_transform = transforms.Compose(
+                [transforms.ToTensor(),
+                 transforms.Resize(desired_size),
+                 transforms.Normalize( (0.5, 0.5, 0.5), (0.5, 0.5, 0.5) )] )
+    tgt_transform = transforms.Compose(
+                [transforms.ToTensor(),
+                 transforms.Resize(desired_size, interpolation=PIL.Image.NEAREST),
+                 lambda x: x.long()])
+    return img_transform, tgt_transform

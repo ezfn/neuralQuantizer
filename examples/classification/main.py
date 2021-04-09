@@ -52,6 +52,7 @@ def train(cfg: DictConfig) -> None:
         parts_dict = get_mobilenet_parts( width=cfg.arch.width, pretrained=True, num_classes=cfg.dataset.num_classes,
                                           part_idx=cfg.quantization.part_idx, decoder_copies=cfg.ensemble.n_ensemble,
                                           mobilenet_setup=cfg.arch.mobilenet_setup)
+    from pl_bolts.models.detection import faster_rcnn
     module = encoderMultiClassifier.EncoderMultiClassifier(encoder=parts_dict['encoder'], decoder=parts_dict['decoders'],
                                                      primary_loss=loss, n_embed=cfg.quantization.n_embed, commitment=cfg.quantization.commitment_w)
     tb_logger = pl_loggers.TensorBoardLogger(log_dir)

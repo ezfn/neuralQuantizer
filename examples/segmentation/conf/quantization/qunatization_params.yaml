@@ -1,4 +1,3 @@
 quantization:
-  n_embed: 256
-  part_idx: 1
+  n_embed: 32
   commitment_w: 0.1
