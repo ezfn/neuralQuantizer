@@ -1,0 +1,4 @@
+arch: "mkdd-net"
+loss: "hard-net"
+training_set: "liberty"
+output_dim: 128

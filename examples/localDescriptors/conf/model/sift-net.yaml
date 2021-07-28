@@ -1,0 +1,4 @@
+arch: "sift-net"
+loss: "hard-net"
+num_ang_bins: 8
+num_spatial_bins: 4
