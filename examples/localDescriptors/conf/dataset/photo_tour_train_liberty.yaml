@@ -1,4 +1,3 @@
-training_set:
-  name: "liberty"
-test_set:
-  name: "TBD"
+# @package _global_
+training_set: ['liberty']
+val_set: ['notredame', 'yosemite']

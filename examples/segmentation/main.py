@@ -10,18 +10,19 @@ from omegaconf import DictConfig
 import sys
 is_debug = sys.gettrace() is not None
 from architectures import seg_nets
+from kornia.losses import DiceLoss
 from segmentation_models_pytorch.utils import losses
 from torch import nn
 
 
-class ce_plus_dice_loss(nn.Module):
+class CrossEntropyPlusDiceLoss( nn.Module ):
     def __init__(self, w):
         super().__init__()
         self.ce_loss = losses.CrossEntropyLoss()
-        self.dice_loss = losses.DiceLoss()
+        self.dice_loss = DiceLoss()
         self.w = w
     def forward(self, y_hat, y):
-        return self.ce_loss(y_hat, y.squeeze(1)) + self.w * self.dice_loss(y_hat, y)
+        return self.ce_loss(y_hat, y.squeeze(1)) + self.w * self.dice_loss(y_hat, y.squeeze(1))
 
 
 @hydra.main( config_path='conf/config.yaml' )
@@ -39,8 +40,8 @@ def train(cfg: DictConfig) -> None:
         print('in run mode!')
         training_params = cfg.training
 
-    loss = ce_plus_dice_loss(w=0.5)#losses.CrossEntropyLoss() + losses.DiceLoss()
-    img_transform, tgt_transform = get_img_and_mask_transforms((128, 128))
+    loss = CrossEntropyPlusDiceLoss( w=0.0 )#losses.CrossEntropyLoss() + losses.DiceLoss()
+    img_transform, tgt_transform = get_img_and_mask_transforms((256, 256))
 
 
 
@@ -49,9 +50,12 @@ def train(cfg: DictConfig) -> None:
                                              decoder_copies=cfg.ensemble.n_ensemble, encoder_name=cfg.arch.backbone)
 
     module = encoderMultiSegmentor.EncoderMultiSegmentor(encoder=parts_dict['encoder'], decoder=parts_dict['decoders'],
-                                                           primary_loss=loss, n_embed=cfg.quantization.n_embed, commitment=cfg.quantization.commitment_w)
+                                                           primary_loss=loss, n_classes=cfg.dataset.num_classes,
+                                                         n_embed=cfg.quantization.n_embed,
+                                                         commitment=cfg.quantization.commitment_w, skip_quant=True,
+                                                         learning_rate=training_params.lr)
     tb_logger = pl_loggers.TensorBoardLogger(log_dir)
-    trainer = pl.Trainer (max_epochs=40, gpus=1, logger=tb_logger)
+    trainer = pl.Trainer (max_epochs=100, gpus=1, logger=tb_logger)
     if cfg.dataset['name'] == 'voc':
         trainset = torchvision.datasets.VOCSegmentation( root=cfg.params.data_path, image_set="train",
                                                  download=False, transform=img_transform, target_transform=tgt_transform, year=cfg.dataset['year'])
@@ -62,7 +66,7 @@ def train(cfg: DictConfig) -> None:
     testloader = torch.utils.data.DataLoader( testset, batch_size=training_params.batch_size,
                                               shuffle=False, num_workers=training_params.num_workers )
 
-    trainer.fit (module, trainloader, testloader)
+    trainer.fit(module, trainloader, testloader)
 
 if __name__ == '__main__':
     train()

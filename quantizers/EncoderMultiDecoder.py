@@ -6,10 +6,8 @@ from quantizers import EncoderDecoder
 
 
 class EncoderMultiDecoder( EncoderDecoder.EncoderDecoder ):
-    def __init__(self, encoder, decoder, primary_loss, n_embed=1024, decay=0.8,
-                 # the exponential moving average decay, lower means the dictionary will change faster
-                 commitment=1., eps=1e-5):
-        super().__init__(encoder, decoder, primary_loss, n_embed, decay, commitment, eps)
+    def __init__(self, encoder, decoder, primary_loss, **kwargs):
+        super().__init__(encoder, decoder, primary_loss, **kwargs)
         self.decoder = nn.ModuleList(self.decoder)
 
     def decode(self, z):

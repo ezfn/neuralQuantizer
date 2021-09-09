@@ -6,7 +6,8 @@ import pytorch_lightning as pl
 
 
 class EncoderDecoder(pl.LightningModule):
-    def __init__(self, encoder, decoder, primary_loss, n_embed=1024, decay=0.8, commitment_w=1., eps=1e-5):
+    def __init__(self, encoder, decoder, primary_loss, n_embed=1024, decay=0.8, commitment=1., eps=1e-5,
+                 skip_quant=False, learning_rate=1e-3):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
@@ -14,7 +15,7 @@ class EncoderDecoder(pl.LightningModule):
         self.decay = decay
         self.eps = eps
         self.primary_loss = primary_loss
-        self.commitment_w = commitment_w
+        self.commitment_w = commitment
         self.hparams.update(dict(n_embed=1024, decay=0.8, commitment_w=1., eps=1e-5))
         dummy_input = torch.zeros((1, 3, 100, 100), device=self.device)
         self.quant_dim = encoder(dummy_input).shape[1]
@@ -24,12 +25,17 @@ class EncoderDecoder(pl.LightningModule):
             decay=self.decay,       # the exponential moving average decay, lower means the dictionary will change faster
             commitment=1.0    # the weight on the commitment loss (==1 cause we want control)
         )
+        self.skip_quant = skip_quant
+        self.learning_rate = learning_rate
 
 
     def encode(self, x):
         z_e = self.encoder(x)
         z_e = z_e.view((z_e.shape[0], z_e.shape[2], z_e.shape[3], z_e.shape[1]))
-        z_q, indices, commit_loss = self.quantizer(z_e)
+        if not self.skip_quant:
+            z_q, indices, commit_loss = self.quantizer(z_e)
+        else:
+            z_q, indices, commit_loss = z_e, None, 0
         return z_q, indices, commit_loss
 
     def decode(self, z):
@@ -77,6 +83,6 @@ class EncoderDecoder(pl.LightningModule):
         self.log( 'val_loss_epoch', loss_sum / len( outputs_dicts ) )
 
     def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.learning_rate)
         # scheduler = torch.optim.lr_scheduler.StepLR(optimizer=optimizer, step_size=20)
         return optimizer#, scheduler

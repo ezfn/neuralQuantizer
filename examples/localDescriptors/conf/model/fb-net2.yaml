@@ -1,4 +1,4 @@
 # @package _group_
-arch: "fb-net"
+arch: "fb-net2"
 loss: "hard-net"
-split: 8
+split: 4

@@ -1,6 +1,15 @@
 import torch
 from torch import nn
 
+class FeatureNorm(nn.Module):
+    def __init__(self):
+        super(FeatureNorm,self).__init__()
+        self.eps = 1e-4
+    def forward(self, x):
+        xn = torch.norm( x, p=2, dim=1).detach().unsqueeze(dim=1)
+        x = x.div(xn + self.eps)
+        return x
+
 class L2Norm(nn.Module):
     def __init__(self):
         super(L2Norm,self).__init__()
