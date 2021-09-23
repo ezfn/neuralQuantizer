@@ -1,8 +1,9 @@
 from quantizers import EncoderMultiDecoder
 import pytorch_lightning as pl
 import torch
-from segmentation_models_pytorch.utils.base import Activation
 from utils import visualizations
+from segmentation_models_pytorch.utils.base import Activation
+
 
 class EncoderMultiSegmentor(EncoderMultiDecoder.EncoderMultiDecoder):
     def  __init__(self, encoder, decoder, primary_loss, n_classes, **kwargs):
@@ -21,15 +22,6 @@ class EncoderMultiSegmentor(EncoderMultiDecoder.EncoderMultiDecoder):
 
     def ensemble_calculator(self, preds_list):
         return torch.mean( torch.stack( preds_list ), axis=0 )
-
-    def calculate_acc(self, preds_list, gts, handlers, activation=None):
-        accs = []
-        activation = Activation( activation )
-        ensemble_preds = self.ensemble_calculator(preds_list)
-        for preds, handler in zip(preds_list, handlers[0:len(preds_list)]):
-            accs.append(handler(activation(preds), gts))
-        accs.append(handlers[-1](activation(ensemble_preds), gts))
-        return accs
 
     def training_step(self, batch, batch_idx):
         result_dict = super().training_step(batch, batch_idx)
@@ -54,7 +46,7 @@ class EncoderMultiSegmentor(EncoderMultiDecoder.EncoderMultiDecoder):
 
     def validation_step(self, batch, batch_idx):
         result_dict = super().validation_step( batch, batch_idx )
-        accs = self.calculate_acc(result_dict['preds'], result_dict['gts'], self.val_acc_handlers, activation='softmax2d')
+        accs = self.calculate_acc(result_dict['preds'], result_dict['gts'], self.val_acc_handlers, Activation('softmax2d'))
         acc_dict = {}
         for idx in range( len( self.decoder ) ):
             acc_dict[f'model_{idx}_val'] = accs[idx]

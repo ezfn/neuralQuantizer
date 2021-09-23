@@ -1,16 +1,17 @@
 from quantizers import EncoderMultiDecoder
 import pytorch_lightning as pl
 import torch
+import torchmetrics
 
 class EncoderMultiClassifier(EncoderMultiDecoder.EncoderMultiDecoder):
     def __init__(self, encoder, decoder, primary_loss, n_embed=1024, decay=0.8, commitment=1., eps=1e-5):
-        super().__init__( encoder, decoder, primary_loss, n_embed, decay, commitment, eps )
+        super().__init__( encoder, decoder, primary_loss, n_embed=n_embed, decay=decay, commitment=commitment, eps=eps)
 
         self.train_acc_handlers = []
         self.val_acc_handlers = []
         for k in range(len(self.decoder) + 1):
-            self.train_acc_handlers.append(pl.metrics.Accuracy())
-            self.val_acc_handlers.append(pl.metrics.Accuracy())
+            self.train_acc_handlers.append(torchmetrics.Accuracy())
+            self.val_acc_handlers.append(torchmetrics.Accuracy())
 
     def on_fit_start(self) -> None:
         super().on_fit_start()
@@ -20,17 +21,9 @@ class EncoderMultiClassifier(EncoderMultiDecoder.EncoderMultiDecoder):
     def ensemble_calculator(self, preds_list):
         return torch.mean( torch.stack( preds_list ), axis=0 )
 
-    def calculate_acc(self, preds_list, gts, handlers):
-        accs = []
-        ensemble_preds = self.ensemble_calculator(preds_list)
-        for preds, handler in zip(preds_list, handlers[0:len(preds_list)]):
-            accs.append(handler(preds, gts))
-        accs.append(handlers[-1](ensemble_preds, gts))
-        return accs
-
     def training_step(self, batch, batch_idx):
         result_dict = super().training_step(batch, batch_idx)
-        accs = self.calculate_acc(result_dict['preds'], result_dict['gts'], self.train_acc_handlers)
+        accs = self.calculate_acc(result_dict['preds'], result_dict['gts'], self.train_acc_handlers, activation=torch.nn.Softmax())
         acc_dict = {}
         for idx in range( len( self.decoder ) ):
             acc_dict[f'model_{idx}_train'] = accs[idx]
@@ -58,7 +51,7 @@ class EncoderMultiClassifier(EncoderMultiDecoder.EncoderMultiDecoder):
 
     def validation_step(self, batch, batch_idx):
         result_dict = super().validation_step( batch, batch_idx )
-        accs = self.calculate_acc( result_dict['preds'], result_dict['gts'], self.val_acc_handlers)
+        accs = self.calculate_acc( result_dict['preds'], result_dict['gts'], self.val_acc_handlers, activation=torch.nn.Softmax())
         # acc_dict = {}
         # for idx in range( len( self.decoder ) ):
         #     acc_dict[f'model_{idx}_val'] = accs[idx]
