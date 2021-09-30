@@ -21,7 +21,7 @@ class EncoderDecoder(pl.LightningModule):
         self.quant_dim = encoder(dummy_input).shape[1]
         self.quantizer = VectorQuantize(
             dim=self.quant_dim,
-            n_embed=self.n_embed,     # size of the dictionary
+            codebook_size=self.n_embed,     # size of the dictionary
             decay=self.decay,       # the exponential moving average decay, lower means the dictionary will change faster
             commitment=1.0    # the weight on the commitment loss (==1 cause we want control)
         )
