@@ -3,19 +3,21 @@ import torch
 import torch.nn.functional as F
 from vector_quantize_pytorch import VectorQuantize
 import pytorch_lightning as pl
-
+import hydra
 
 class EncoderDecoder(pl.LightningModule):
-    def __init__(self, encoder, decoder, primary_loss, n_embed=1024, decay=0.8, commitment=1., eps=1e-5,
-                 skip_quant=False, learning_rate=1e-3):
+    def __init__(self, encoder, decoder, primary_loss, decay=0.8, eps=1e-5):
         super().__init__()
         self.encoder = encoder
         self.decoder = decoder
-        self.n_embed = n_embed
         self.decay = decay
         self.eps = eps
         self.primary_loss = primary_loss
-        self.commitment_w = commitment
+        cfg = hydra.compose(config_name="config")
+        self.skip_quant = cfg.quantization.quantization['skip']
+        self.n_embed = cfg.quantization.quantization['n_embed']
+        self.commitment_w = cfg.quantization.quantization['commitment_w']
+        self.learning_rate = cfg.training.training['lr']
         self.hparams.update(dict(n_embed=1024, decay=0.8, commitment_w=1., eps=1e-5))
         dummy_input = torch.zeros((1, 3, 100, 100), device=self.device)
         self.quant_dim = encoder(dummy_input).shape[1]
@@ -25,8 +27,6 @@ class EncoderDecoder(pl.LightningModule):
             decay=self.decay,       # the exponential moving average decay, lower means the dictionary will change faster
             commitment=1.0    # the weight on the commitment loss (==1 cause we want control)
         )
-        self.skip_quant = skip_quant
-        self.learning_rate = learning_rate
 
 
     def encode(self, x):

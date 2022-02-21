@@ -2,6 +2,7 @@ from architectures import utils
 import numpy as np
 import torchvision
 from torch import nn
+import hydra
 
 from architectures.utils import Flatten
 
@@ -31,8 +32,13 @@ mobilenet_imagenet_setup = dict(
 )
 
 
-def get_mobilenet_parts(width=1.0, pretrained=False, num_classes=1000, part_idx=1, decoder_copies=1,
-                        weight_reset=utils.weight_reset, mobilenet_setup='CIFAR'):
+def get_mobilenet_parts(pretrained=False, weight_reset=utils.weight_reset):
+    cfg = hydra.compose( config_name="config" )
+    width = cfg.arch.arch['width']
+    num_classes = cfg.dataset.dataset['num_classes']
+    part_idx = cfg.quantization.quantization['part_idx']
+    decoder_copies = cfg.ensemble.ensemble['n_ensemble']
+    mobilenet_setup = cfg.arch.arch['mobilenet_setup']
     if mobilenet_setup == 'CIFAR':
         inverted_residual_setting = mobilenet_cifar_10_setup['inverted_residual_setting']
         num_channels_per_layer = np.array(mobilenet_cifar_10_setup['num_channels_per_layer']) * width

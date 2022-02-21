@@ -4,8 +4,8 @@ import torch
 import torchmetrics
 
 class EncoderMultiClassifier(EncoderMultiDecoder.EncoderMultiDecoder):
-    def __init__(self, encoder, decoder, primary_loss, n_embed=1024, decay=0.8, commitment=1., eps=1e-5):
-        super().__init__( encoder, decoder, primary_loss, n_embed=n_embed, decay=decay, commitment=commitment, eps=eps)
+    def __init__(self, encoder, decoder, primary_loss, **kwargs):
+        super().__init__( encoder, decoder, primary_loss, **kwargs)
 
         self.train_acc_handlers = []
         self.val_acc_handlers = []

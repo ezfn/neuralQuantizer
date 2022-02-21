@@ -62,7 +62,13 @@ def get_cifar_train_transforms():
                  transforms.ToTensor(),
                  transforms.Normalize( (0.5, 0.5, 0.5), (0.5, 0.5, 0.5) )] )
     return transform
-
+def get_imagenet_train_transforms():
+    transform = transforms.Compose(
+                [transforms.RandomResizedCrop( (224, 224), scale=(0.8, 0.8) ),
+                 transforms.RandomHorizontalFlip(),
+                 transforms.ToTensor(),
+                 transforms.Normalize( (0.5, 0.5, 0.5), (0.5, 0.5, 0.5) )] )
+    return transform
 def get_test_transform():
     test_transform = transforms.Compose(
                 [transforms.ToTensor(),
