@@ -16,13 +16,14 @@ class EncoderDecoder(pl.LightningModule):
         cfg = hydra.compose(config_name="config")
         self.skip_quant = cfg.quantization.quantization['skip']
         self.n_embed = cfg.quantization.quantization['n_embed']
+        self.n_parts = cfg.quantization.quantization['n_parts']
         self.commitment_w = cfg.quantization.quantization['commitment_w']
         self.learning_rate = cfg.training.training['lr']
         self.hparams.update(dict(n_embed=1024, decay=0.8, commitment_w=1., eps=1e-5))
         dummy_input = torch.zeros((1, 3, 100, 100), device=self.device)
         self.quant_dim = encoder(dummy_input).shape[1]
         self.quantizer = VectorQuantize(
-            dim=self.quant_dim,
+            dim=self.quant_dim // self.n_parts,
             codebook_size=self.n_embed,     # size of the dictionary
             decay=self.decay,       # the exponential moving average decay, lower means the dictionary will change faster
             commitment=1.0    # the weight on the commitment loss (==1 cause we want control)
@@ -33,7 +34,16 @@ class EncoderDecoder(pl.LightningModule):
         z_e = self.encoder(x)
         z_e = z_e.view((z_e.shape[0], z_e.shape[2], z_e.shape[3], z_e.shape[1]))
         if not self.skip_quant:
-            z_q, indices, commit_loss = self.quantizer(z_e)
+            z_e_split = torch.split(z_e, self.quant_dim // self.n_parts, dim=3)
+            z_q_split, indices_split = [], []
+            commit_loss = 0
+            for z_e_part in z_e_split:
+                z_q_part, indices_part, commit_loss_part = self.quantizer(z_e_part)
+                commit_loss += commit_loss_part
+                z_q_split.append(z_q_part)
+                indices_split.append( indices_part )
+            z_q = torch.cat(z_q_split, dim=3)
+            indices = torch.stack(indices_split, dim=3)
         else:
             z_q, indices, commit_loss = z_e, None, 0
         return z_q, indices, commit_loss

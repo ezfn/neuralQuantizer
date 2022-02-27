@@ -47,6 +47,7 @@ def get_mobilenet_parts(pretrained=False, weight_reset=utils.weight_reset):
         num_channels_per_layer = np.array(mobilenet_imagenet_setup['num_channels_per_layer'] ) * width
     m = torchvision.models.mobilenet_v2( pretrained=pretrained, width_mult=width, num_classes=1000,
                                          inverted_residual_setting=inverted_residual_setting )
+    torchvision.models.mnasnet0_5()
     out_dict = dict( encoder=[], decoders=[] )
     if part_idx == 1:
         stop_layer = 4

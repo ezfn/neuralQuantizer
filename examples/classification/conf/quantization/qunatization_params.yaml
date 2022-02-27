@@ -1,5 +1,6 @@
 quantization:
-  n_embed: 4096
+  n_embed: 256
   part_idx: 1
   commitment_w: 0.1
-  skip: False
+  n_parts: 1
+  skip: True

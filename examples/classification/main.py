@@ -26,7 +26,7 @@ def imagenet_loader(path: str) -> Image.Image:
 
 @hydra.main( config_path="conf", config_name="config")
 def train(cfg: DictConfig) -> None:
-    log_dir_name = f"{cfg.dataset.dataset.name}_{cfg.arch.arch.name}_{cfg.quantization.quantization}_{cfg.ensemble.ensemble}".replace(
+    log_dir_name = f"{cfg.dataset.dataset.name}_{cfg.arch.arch}_{cfg.quantization.quantization}_{cfg.ensemble.ensemble}".replace(
         ":", '-' ).replace( '\'', '' ).replace( ' ', '' )
     log_dir_name = log_dir_name.replace( '{', '' )
     log_dir_name = log_dir_name.replace( '}', '' )
@@ -86,8 +86,13 @@ def train(cfg: DictConfig) -> None:
     testloader = torch.utils.data.DataLoader( testset, batch_size=training_params.batch_size,
                                               shuffle=False, num_workers=training_params.num_workers)
     if cfg.arch.arch.name == 'mobilenet':
-        parts_dict = get_mobilenet_parts( pretrained=True,
-                                          weight_reset=utils.add_noise_to_model)
+        use_transfer_learning = cfg.arch.arch.pretrained
+        if use_transfer_learning:
+            weight_reset = utils.add_noise_to_model
+        else:
+            weight_reset = utils.weight_reset
+        parts_dict = get_mobilenet_parts(pretrained=use_transfer_learning,
+                                      weight_reset=weight_reset)
     # load encoder and decoders params (in case our checkpoint is not fully compatible with requested setup)
     if pre_trained_path is not None:
         checkpoint = torch.load( pre_trained_path )
